@@ -1,6 +1,6 @@
 ---
 - name: "Check if {{ application_name }} is installed"
-  find:
+  ansible.builtin.find:
     name: "{{ toolbox_install_dir }}"
     file_type: "file"
     pattern: "{{ toolbox_install_file }}"
@@ -10,53 +10,74 @@
   register: is_installed
 
 - name: "Check for multiple installations"
-  fail:
-    msg:
-      "Warning: {{ is_installed.matched }} installations found in {{ toolbox_install_dir }}! Please, fix it manually."
+  ansible.builtin.fail:
+    msg: "Warning: {{ is_installed.matched }} installations found in {{ toolbox_install_dir }}! Please, fix it manually."
   failed_when: is_installed.matched > 1
+
+- name: Get the latest version data
+  block:
+    - name: Fetch the data
+      ansible.builtin.uri:
+        url: "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release"
+        method: GET
+        return_content: true
+        status_code: 200
+        body_format: json
+      register: latest_relese_output
+
+    - name: Extract the data
+      ansible.builtin.set_fact:
+        download_url_latest: "{{ latest_relese_output.json | json_query('TBA[0].downloads.linux.link') }}"
+        build_version: "{{ latest_relese_output.json | json_query('TBA[0].build') }}"
+
+    - name: Set variables
+      ansible.builtin.set_fact:
+        download_url_final: "{{ download_url_latest }}"
+        archive_file_name: "{{ toolbox_install_file }}-{{ build_version }}.tar.gz"
 
 - name: "Installation process"
   block:
-    - name: "Download {{ application_name }} of version {{ toolbox_version }}"
-      get_url:
-        url: "{{ download_url }}"
+    - name: "Download {{ application_name }}"
+      ansible.builtin.get_url:
+        url: "{{ download_url_final }}"
         dest: "{{ temporary_file_name }}"
+        mode: 0644
 
     - name: "Install to {{ toolbox_install_dir }}"
-      unarchive:
+      ansible.builtin.unarchive:
         remote_src: true
         src: "{{ temporary_file_name }}"
         dest: "{{ toolbox_install_dir }}"
 
     - name: "Move executable from the folder"
-      copy:
-        src: "{{ toolbox_install_dir }}/{{ toolbox_install_file }}-{{ toolbox_version }}/{{ toolbox_install_file }}"
+      ansible.builtin.copy:
+        src: "{{ toolbox_install_dir }}/{{ toolbox_install_file }}-{{ build_version }}/{{ toolbox_install_file }}"
         dest: "{{ toolbox_install_path }}"
         remote_src: true
         owner: "root"
         group: "root"
-        mode: '0777'
+        mode: "0777"
 
     - name: "Remove temporary folders and files"
-      file:
+      ansible.builtin.file:
         name: "{{ item }}"
         state: "absent"
       with_items:
-        - "{{ toolbox_install_dir }}/{{ toolbox_install_file }}-{{ toolbox_version }}"
+        - "{{ toolbox_install_dir }}/{{ toolbox_install_file }}-{{ build_version }}"
         - "{{ temporary_file_name }}"
 
     - name: "Run as user to finish installation"
-      command: "{{ toolbox_install_path }}"
+      ansible.builtin.command: "{{ toolbox_install_path }}"
       become: true
       become_user: "{{ toolbox_install_for_user }}"
       when: toolbox_install_for_user | length
 
     - name: Reminder how to launch
-      debug:
+      ansible.builtin.debug:
         msg: |
           User, who will use {{ application_name }}, have to run {{ toolbox_install_path }}
           manually for the first time.
-      when: not( toolbox_install_for_user | length )
+      when: not (toolbox_install_for_user | length)
 
   when: is_installed.matched == 0
 
