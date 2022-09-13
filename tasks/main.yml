@@ -3,7 +3,7 @@
   ansible.builtin.find:
     name: "{{ toolbox_install_dir }}"
     file_type: "file"
-    pattern: "{{ toolbox_install_file }}"
+    pattern: "{{ toolbox_executable }}"
     use_regex: false
     recurse: true
     depth: 2
@@ -16,7 +16,7 @@
 
 - name: Get the latest version data
   block:
-    - name: Fetch the data
+    - name: Fetch the release data
       ansible.builtin.uri:
         url: "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release"
         method: GET
@@ -25,23 +25,26 @@
         body_format: json
       register: latest_relese_output
 
-    - name: Extract the data
+    - name: Extract the release data
       ansible.builtin.set_fact:
-        download_url_latest: "{{ latest_relese_output.json | json_query('TBA[0].downloads.linux.link') }}"
+        download_url: "{{ latest_relese_output.json | json_query('TBA[0].downloads.linux.link') }}"
         build_version: "{{ latest_relese_output.json | json_query('TBA[0].build') }}"
-
-    - name: Set variables
-      ansible.builtin.set_fact:
-        download_url_final: "{{ download_url_latest }}"
-        archive_file_name: "{{ toolbox_install_file }}-{{ build_version }}.tar.gz"
 
 - name: "Installation process"
   block:
     - name: "Download {{ application_name }}"
       ansible.builtin.get_url:
-        url: "{{ download_url_final }}"
+        url: "{{ download_url }}"
         dest: "{{ temporary_file_name }}"
         mode: 0644
+
+    - name: Create folders
+      ansible.builtin.file:
+        dest: "{{ toolbox_install_dir }}"
+        state: directory
+        recurse: true
+        mode: 0755
+        force: false
 
     - name: "Install to {{ toolbox_install_dir }}"
       ansible.builtin.unarchive:
@@ -49,22 +52,38 @@
         src: "{{ temporary_file_name }}"
         dest: "{{ toolbox_install_dir }}"
 
-    - name: "Move executable from the folder"
+    - name: Find the executable
+      ansible.builtin.find:
+        name: "{{ toolbox_install_dir }}"
+        file_type: "file"
+        pattern: "{{ toolbox_executable }}"
+        use_regex: false
+        recurse: true
+      register: toolbox_executable_unarchive_location_result
+
+    - name: Set variables
+      ansible.builtin.set_fact:
+        toolbox_executable_unarchive_location: "{{ toolbox_executable_unarchive_location_result.files[0].path }}"
+      when: toolbox_executable_unarchive_location_result.matched == 1
+
+    - name: "Move executable to the target folder"
       ansible.builtin.copy:
-        src: "{{ toolbox_install_dir }}/{{ toolbox_install_file }}-{{ build_version }}/{{ toolbox_install_file }}"
+        src: "{{ toolbox_executable_unarchive_location }}"
         dest: "{{ toolbox_install_path }}"
         remote_src: true
         owner: "root"
         group: "root"
         mode: "0777"
+      when: toolbox_executable_unarchive_location != toolbox_install_path
 
     - name: "Remove temporary folders and files"
       ansible.builtin.file:
         name: "{{ item }}"
         state: "absent"
       with_items:
-        - "{{ toolbox_install_dir }}/{{ toolbox_install_file }}-{{ build_version }}"
+        - "{{ (toolbox_executable_unarchive_location | basename) if toolbox_executable_unarchive_location != toolbox_install_path else undefined }}"
         - "{{ temporary_file_name }}"
+      when: item is defined
 
     - name: "Run as user to finish installation"
       ansible.builtin.command: "{{ toolbox_install_path }}"

@@ -4,4 +4,4 @@
   become: true
 
   roles:
-    - role: webarchitect609.jet_brains_toolbox
+    - role: pedorich_n.jet_brains_toolbox
