@@ -1,5 +1,5 @@
 ---
 application_name: "JetBrains Toolbox"
 toolbox_executable: "jetbrains-toolbox"
-temporary_file_name: "/tmp/{{ archive_file_name }}"
+temporary_file_name: "/tmp/jetbrains_toolbox.tar.gz"
 toolbox_install_path: "{{ toolbox_install_dir }}/{{ toolbox_executable }}"

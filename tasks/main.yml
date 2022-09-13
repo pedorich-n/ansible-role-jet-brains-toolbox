@@ -76,12 +76,16 @@
         mode: "0777"
       when: toolbox_executable_unarchive_location != toolbox_install_path
 
+    - name: Debug
+      ansible.builtin.debug:
+        msg: "{{ toolbox_executable_unarchive_location | dirname }}"
+
     - name: "Remove temporary folders and files"
       ansible.builtin.file:
         name: "{{ item }}"
         state: "absent"
       with_items:
-        - "{{ (toolbox_executable_unarchive_location | basename) if toolbox_executable_unarchive_location != toolbox_install_path else undefined }}"
+        - "{{ (toolbox_executable_unarchive_location | dirname) if toolbox_executable_unarchive_location != toolbox_install_path else undefined }}"
         - "{{ temporary_file_name }}"
       when: item is defined
 

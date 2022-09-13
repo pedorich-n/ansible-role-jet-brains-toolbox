@@ -1,0 +1,7 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: Include role
+      ansible.builtin.include_role:
+        name: "pedorich_n.jet_brains_toolbox"
