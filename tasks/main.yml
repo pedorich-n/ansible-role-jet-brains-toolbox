@@ -76,10 +76,6 @@
         mode: "0777"
       when: toolbox_executable_unarchive_location != toolbox_install_path
 
-    - name: Debug
-      ansible.builtin.debug:
-        msg: "{{ toolbox_executable_unarchive_location | dirname }}"
-
     - name: "Remove temporary folders and files"
       ansible.builtin.file:
         name: "{{ item }}"
