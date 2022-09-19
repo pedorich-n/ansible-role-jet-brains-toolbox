@@ -1,7 +1,7 @@
 ---
 dependencies: []
 galaxy_info:
-  namespace: webarchitect609
+  namespace: pedorich_n
   role_name: jet_brains_toolbox
   author: Gripinskiy Sergey
   description: Installs JetBrains Toolbox https://www.jetbrains.com/toolbox/app/
