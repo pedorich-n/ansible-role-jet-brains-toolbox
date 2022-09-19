@@ -4,10 +4,10 @@ Ansible Role: JetBrains Toolbox
 
 Installs JetBrains [Toolbox App](https://www.jetbrains.com/toolbox/app/). 
 
-Forked from [webarchitect609/ansible-role-jet-brains-toolbox](https://github.com/webarchitect609/ansible-role-jet-brains-toolbox).
 It downloads and unpacks the tar archive from JetBrains. After the installation is complete,
 user should run `jetbrains-toolbox` executable manually. 
 
+Forked from [webarchitect609/ansible-role-jet-brains-toolbox](https://github.com/webarchitect609/ansible-role-jet-brains-toolbox).
 The difference from the original role is that it doesn't require a specific version of Toolbox to be specified. The task fetches this information from the JSON API.
 
 Requirements
